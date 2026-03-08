@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.env
+
+# Models & Data
+data/
+loras/
+outputs/
+unsloth_compiled_cache/
+*.gguf
+*.safetensors
+*.bin
+*.pt
+*.pth
+
+# Installer & Logs
+*.run
+*.log
+sftconfig_dir.txt
+
+# IDE
+.vscode/
+.idea/
+.ipynb_checkpoints/
