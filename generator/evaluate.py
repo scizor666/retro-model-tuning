@@ -12,6 +12,7 @@ import mediapipe as mp
 from mediapipe.tasks import python
 from mediapipe.tasks.python import text
 from peft import PeftModel
+from PIL import Image
 
 def load_vector_db():
     vecs_path = "data/rag_vectors.npy"
@@ -139,6 +140,13 @@ def evaluate_model(base_model_path, adapter_path, dataset_path, output_path, use
             
     print(f"Loading base model {base_model_path}...")
     tokenizer = AutoTokenizer.from_pretrained(base_model_path)
+    # Gemma 3 uses a distinct image processor or the tokenizer itself handles images
+    from transformers import AutoProcessor
+    try:
+        processor = AutoProcessor.from_pretrained(base_model_path)
+    except:
+        processor = tokenizer
+        
     model = AutoModelForCausalLM.from_pretrained(
         base_model_path,
         device_map="auto",
@@ -179,10 +187,19 @@ def evaluate_model(base_model_path, adapter_path, dataset_path, output_path, use
             
         prompt = create_prompt(instruction, context)
         
+        image_path = item.get("image_path")
+        image = None
+        
         # Format for gemma-3
-        messages = [{"role": "user", "content": prompt}]
-        text_prompt = tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
-        inputs = tokenizer(text_prompt, return_tensors="pt").to(model.device)
+        if image_path and os.path.exists(image_path):
+            image = Image.open(image_path).convert("RGB")
+            messages = [{"role": "user", "content": [{"type": "image"}, {"type": "text", "text": prompt}]}]
+            text_prompt = processor.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
+            inputs = processor(text=text_prompt, images=image, return_tensors="pt").to(model.device)
+        else:
+            messages = [{"role": "user", "content": prompt}]
+            text_prompt = tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
+            inputs = tokenizer(text_prompt, return_tensors="pt").to(model.device)
         
         with torch.no_grad():
             outputs = model.generate(**inputs, max_new_tokens=128, pad_token_id=tokenizer.eos_token_id)
@@ -273,8 +290,8 @@ if __name__ == "__main__":
     parser.add_argument("--adapter", type=str, default=None)
     parser.add_argument("--use_rag", action="store_true")
     parser.add_argument("--output", type=str, required=True)
+    parser.add_argument("--dataset", type=str, default="data/eval_dataset.jsonl", help="Path to jsonl dataset")
     parser.add_argument("--limit", type=int, default=None, help="Limit the number of examples to evaluate")
     args = parser.parse_args()
     
-    dataset_path = "data/eval_dataset.jsonl"
-    evaluate_model(args.base_model, args.adapter, dataset_path, args.output, args.use_rag, limit=args.limit)
+    evaluate_model(args.base_model, args.adapter, args.dataset, args.output, args.use_rag, limit=args.limit)
