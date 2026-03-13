@@ -21,6 +21,12 @@ The core training hyperparameters:
 - **Rank (`r`)**: 16. (Determines how "expressive" the new knowledge can be. 8-16 is ideal for Q&A tasks without risking catastrophic forgetting).
 - **Target Modules**: `q_proj, k_proj, v_proj, o_proj, gate_proj, up_proj, down_proj`. (We attach the LoRA adapter to almost all linear layers in the transformer for maximum adoption of the new tone and facts).
 
+### Behavioral Persona Focus
+Initial fine-tuning on raw facts resulted in high accuracy but "robotic" and inconsistent conversational flow. We've introduced a secondary training stage (via `training/finetune_persona.py`) that focuses exclusively on:
+- **Tone & Style**: Responding as a friendly human expert rather than a search engine.
+- **Out-of-Domain (OOD) Rejection**: Politely declining requests unrelated to retro gaming to prevent hallucination in areas where the RAG context is silent.
+- **Natural Transitions**: Avoiding "robotic" phrasing like "According to the provided text..." while still utilizing the RAG context invisibly.
+
 ## Exporting for Inference (`training/merge_export.py`)
 
 After training finishes, the output is just a folder of "Adapter Weights". It is useless on its own.

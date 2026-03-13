@@ -34,4 +34,11 @@ Unsloth and HuggingFace training scripts standardize on the `ShareGPT` conversat
   "source": "emuwiki"
 }
 ```
-This is what actually gets passed to the trainer.
+ This is what actually gets passed to the trainer.
+
+## RAG & Android Deployment (`generator/export_rag_for_android.py`)
+
+To ensure the model has access to the latest facts on-device without needing a massive parameter count, we export our vector database for mobile use.
+1. **Index Export**: The `rag_index.bin` file stores L2-normalized 384-dimensional embeddings (MediaPipe compatible) as raw float32 values.
+2. **Metadata Export**: The `rag_metadata.bin` file contains the raw text chunks corresponding to each vector, using a binary offset table for high-speed direct random access without loading the whole file into RAM.
+3. **Validation**: The pipeline ensures parity between the Python-based evaluation and the Android JNI-based inference, guaranteeing the model sees the exact same context in both environments.
